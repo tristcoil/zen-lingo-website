@@ -1,0 +1,19 @@
+
+full workflow with persistent mysql image:
+
+sudo chmod 777 -R database_zen_lingo
+
+docker build --tag=data_backup .
+
+docker login --username coil
+
+docker tag data_backup coil/data-backup
+
+# only for container, not image
+#docker commit data_backup coil/data-backup
+
+docker push coil/data-backup
+
+
+
+docker run -it coil/data-backup /bin/bash
