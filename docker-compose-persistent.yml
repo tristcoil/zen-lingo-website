@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+ wordpress_zen_lingo:
+    image: wordpress
+    links:
+     - mariadb_zen_lingo:mysql
+    environment:
+     - WORDPRESS_DB_PASSWORD=password
+    ports:
+     - "8080:80"
+    volumes:
+     - data_volume:/code
+     - data_volume:/var/www/html
+
+
+ mariadb_zen_lingo:
+    image: mariadb
+    environment:
+     - MYSQL_ROOT_PASSWORD=password
+     - MYSQL_DATABASE=wordpress_zen_lingo
+    ports:
+     - "3306:3306"
+    volumes:
+     - data_volume:/var/lib/mysql
+
+# parent dir is called zen-lingo
+# so volume will be locally called
+# zen-lingo_data_volume
+volumes:
+    data_volume:
+ 
+#networks:
+#    zen_lingo:
