@@ -1,0 +1,85 @@
+version: "2"
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: proxy
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /etc/nginx/vhost.d
+      - /home/coil/certs:/etc/nginx/certs:ro
+      - /usr/share/nginx/html
+    restart: always 
+    networks:
+      - proxy_net
+    labels:
+      - com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy
+#-----------------------------------------------------   
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: encrypt
+    depends_on:
+      - nginx-proxy
+    volumes:
+      - /home/coil/certs:/etc/nginx/certs:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    volumes_from:
+      - nginx-proxy
+    restart: always 
+    networks:
+      - proxy_net
+#-----------------------------------------------------   
+  certs:
+    image: tutum/apache-php
+    container_name: certs
+    environment:
+      - VIRTUAL_HOST=zen-lingo.eu,www.zen-lingo.eu
+      - LETSENCRYPT_HOST=zen-lingo.eu,www.zen-lingo.eu
+      - LETSENCRYPT_EMAIL=michal.vasulka@gmail.com
+    restart: always 
+    networks:
+      - cert_net
+#-----------------------------------------------------      
+  wordpress_zen_lingo:
+    image: wordpress
+    container_name: wordpress_zen_lingo
+    links:
+     - mariadb_zen_lingo:mysql
+    environment:
+     - WORDPRESS_DB_PASSWORD=password
+     - VIRTUAL_HOST=zen-lingo.eu,www.zen-lingo.eu
+    ports:
+     - "3001:80"
+    depends_on:
+     - nginx-proxy
+     - letsencrypt    
+     - mariadb_zen_lingo
+    volumes:
+     - ./code_zen_lingo:/code
+     - ./html_zen_lingo:/var/www/html
+    restart: always
+    networks:
+      - proxy_net
+
+  mariadb_zen_lingo:
+    image: mariadb
+    environment:
+     - MYSQL_ROOT_PASSWORD=password
+     - MYSQL_DATABASE=wordpress_zen_lingo
+    depends_on:
+     - nginx-proxy
+     - letsencrypt           
+    volumes:
+     - ./database_zen_lingo:/var/lib/mysql
+    restart: always
+    networks:
+      - proxy_net  
+#-----------------------------------------------------  
+#----------------------------------------------------- 
+networks:
+  cert_net:
+    driver: bridge
+  proxy_net:
+    driver: bridge
